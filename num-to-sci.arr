@@ -56,8 +56,8 @@ fun get-girth(n):
   num-floor(log-base(10, num-abs(n)))
 end
 
-fun make-sci(prefix, underlying-num, underlying-num-str, max-chars) block:
-  # spy "make-sci": prefix, underlying-num, underlying-num-str end
+fun make-sci(underlying-num, underlying-num-str, max-chars) block:
+  # spy "make-sci": underlying-num, underlying-num-str, max-chars end
   u-len = string-length(underlying-num-str)
   girth = num-floor(log-base(10, num-abs(underlying-num)))
   neg-girth = 0 - girth
@@ -91,19 +91,19 @@ fun make-sci(prefix, underlying-num, underlying-num-str, max-chars) block:
               else: 'e-' + num-to-string(neg-girth)
               end
   # spy: int-part, dec-part, expt-part end
-    
-  if (string-length(prefix) + string-length(int-part) + 
+
+  if (string-length(int-part) +
      string-length(dec-part) + string-length(expt-part)) <= max-chars:
      # spy: fixme: 100 end
-     prefix + int-part  + dec-part   + expt-part
+     int-part + dec-part + expt-part
   else:
     # spy: fixme: 101 end
-     shrink-dec(prefix + int-part + dec-part + expt-part, max-chars)
+     shrink-dec(int-part + dec-part + expt-part, max-chars)
   end
 end
 
-fun make-unsci(prefix, underlying-num-str, u-len):
-  # spy 'make-unsci of': prefix, underlying-num-str end
+fun make-unsci(underlying-num-str, u-len):
+  # spy 'make-unsci of': underlying-num-str end
   e-position = string-index-of(underlying-num-str, 'e')
   mantissa-str = string-substring(underlying-num-str, 0, e-position)
   exponent = string-to-number-i(string-substring(
@@ -120,16 +120,16 @@ fun make-unsci(prefix, underlying-num-str, u-len):
     else: ''
     end
   if exponent == 0:
-    prefix + underlying-num-str
+    underlying-num-str
   else if exponent > 0:
     mantissa-frac-len = string-length(mantissa-frac-str)
     if mantissa-frac-len == exponent:
-      prefix + mantissa-int-str + mantissa-frac-str
+       mantissa-int-str + mantissa-frac-str
     else if mantissa-frac-len < exponent:
-      prefix + mantissa-int-str + mantissa-frac-str +
+       mantissa-int-str + mantissa-frac-str +
         string-repeat('0', exponent - mantissa-frac-len)
     else:
-      prefix + mantissa-int-str +
+       mantissa-int-str +
         string-substring(mantissa-frac-str, 0, exponent) + '.' +
         string-substring(mantissa-frac-str, exponent, mantissa-frac-len)
     end
@@ -137,12 +137,11 @@ fun make-unsci(prefix, underlying-num-str, u-len):
     shadow exponent = 0 - exponent
     mantissa-int-len = string-length(mantissa-int-str)
     if mantissa-int-len == exponent:
-      prefix + "0." + mantissa-int-str + mantissa-frac-str
+       "0." + mantissa-int-str + mantissa-frac-str
     else if mantissa-int-len < exponent:
-      prefix + "0." + string-repeat('0', (exponent - mantissa-int-len) - 1) +
+       "0." + string-repeat('0', (exponent - mantissa-int-len) - 1) +
       mantissa-int-str + mantissa-frac-str
     else:
-      prefix +
       string-substring(mantissa-int-str, 0, mantissa-int-len - exponent) +
       "." +
       string-substring(mantissa-int-str, mantissa-int-len - exponent,
@@ -219,7 +218,7 @@ fun shrink-dec(num-str, max-chars):
 end
 
 fun num-to-sci(n, max-chars) block:
-  # spy: n end
+  # spy 'num-to-sci of': n end
   negativep = (n < 0)
   roughp = num-is-roughnum(n)
   underlying-num = if negativep: 0 - n else: n end
@@ -229,6 +228,7 @@ fun num-to-sci(n, max-chars) block:
   u-len = string-length(underlying-num-str)
   g-len = (if negativep: 1 else: 0 end) + (if roughp: 1 else: 0 end) + u-len
   prefix = (if roughp: '~' else: '' end) + (if negativep: '-' else: '' end)
+  max-chars-mod = max-chars - string-length(prefix)
   if not(string-contains(underlying-num-str, 'e')):
     # spy: fixme: 1, g-len, max-chars end
     if g-len <= max-chars:
@@ -243,32 +243,32 @@ fun num-to-sci(n, max-chars) block:
     else:
       girth = num-floor(log-base(10, num-abs(underlying-num)))
       # spy: fixme: 2, girth, underlying-num-str end
-      sci-num-str = make-sci(prefix, underlying-num, underlying-num-str, 
-         max-chars)
+      sci-num-str = make-sci(underlying-num, underlying-num-str,
+         max-chars-mod)
       # spy: sci-num-str end
       if (girth < 0) and (girth > -3):
         # spy: fixme: 2.4 end
-        shrink-dec(prefix + underlying-num-str, max-chars)
-      else if string-length(sci-num-str) <= max-chars:
+        prefix + shrink-dec(underlying-num-str, max-chars-mod)
+      else if string-length(sci-num-str) <= max-chars-mod:
         # spy: fixme: 2.5 end
-        sci-num-str
-      else if not(string-contains(underlying-num-str, '/')): 
+        prefix + sci-num-str
+      else if not(string-contains(underlying-num-str, '/')):
         # spy: fixme: 2.6 end
-        shrink-dec(prefix + underlying-num-str, max-chars)
+        prefix + shrink-dec(underlying-num-str, max-chars)
       else:
         # spy: fixme: 3 end
         sci-num-str
       end
     end
   else:
-    unsci-num-str = make-unsci(prefix, underlying-num-str, u-len)
+    unsci-num-str = prefix + make-unsci(underlying-num-str, u-len)
     # spy "unsci": prefix, underlying-num-str, unsci-num-str, g-len, max-chars end
     # spy: unsci-num-str-len: string-length(unsci-num-str) end
     if string-length(unsci-num-str) <= max-chars: unsci-num-str
     else if g-len <= max-chars: prefix + underlying-num-str
     else:
       # spy: fixme: 4 end
-      shrink-dec(prefix + underlying-num-str, max-chars)
+      prefix + shrink-dec(underlying-num-str, max-chars)
     end
   end
 where:
@@ -310,9 +310,60 @@ where:
 end
 # print(num-to-sci(23e3, 18))
 
-fun t():
-  [list: num-to-sci(20368014.7, 9),  "20368014"]
-#   [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
+
+fun easy-num-repr(n, max-chars) block:
+  negativep = (n < 0)
+  roughp = num-is-roughnum(n)
+  prefix = (if roughp: '~' else: '' end) + (if negativep: '-' else: '' end)
+  prefix-len = string-length(prefix)
+  max-chars-mod = max-chars # - prefix-len
+  underlying-num = if negativep: 0 - n else: n end
+  underlying-num-str = fake-num-to-fixnum(underlying-num)
+  decimal-point-position = string-index-of(underlying-num-str, '.')
+  underlying-num-str-len = string-length(underlying-num-str)
+  # spy: underlying-num, underlying-num-str, underlying-num-str-len end
+  var int-str = underlying-num-str
+  var dec-str = ''
+  if decimal-point-position > -1 block:
+    int-str := string-substring(underlying-num-str, 0, decimal-point-position)
+    dec-str := '0' + string-substring(underlying-num-str, decimal-point-position, underlying-num-str-len)
+  else: false
+  end
+  # spy: int-str, dec-str end
+  var output = ''
+  if underlying-num == 1 block: prefix + '1'
+  else:
+    var len-2 = 0
+    if underlying-num > 1:
+      len-2 := string-length(int-str)
+    else:
+      len-2 := (0 - get-girth(underlying-num)) + 2
+    end
+    # spy: len-2, max-chars-mod end
+    if len-2 <= max-chars-mod block:
+      # spy: fixme: 'ez' end
+      if len-2 < max-chars-mod: len-2 := len-2 + 1 else: false end
+        # spy: len-2, decimal-point-position end
+      if (len-2 - 1) == decimal-point-position: len-2 := len-2 + 1 else: false end
+      num-2 = string-substring(underlying-num-str, 0, len-2)
+      # spy: len-2, num-2 end
+      output := prefix + num-to-sci(string-to-number-i(num-2), max-chars-mod)
+    else: output := num-to-sci(n, max-chars)
+    end
+    output
+  end
+  where:
+    easy-num-repr(0.0001234, 6) is "0.0001"
+    easy-num-repr(2343.234, 6) is "2343.2"
+    easy-num-repr(0.000000001234, 6) is "1.2e-9"
+    easy-num-repr(2343243432.234, 6) is "2.34e9"
 end
+
+# fun t():
+#     [list: easy-num-repr(2343.234, 6), "2343.2"]
+#   # [list: easy-num-repr(0.0001234, 6), "0.0001"]
+#   # [list: num-to-sci(20368014.7, 9),  "20368014"]
+#   # [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
+# end
 
 # num-to-sci(203.680147,9) should evaluate to ~203.6801 instead of ~2.0368e2
