@@ -52,12 +52,16 @@ fun string-to-number-i(s):
   end
 end
 
-fun make-sci(prefix, underlying-num, underlying-num-str, max-chars):
+fun get-girth(n):
+  num-floor(log-base(10, num-abs(n)))
+end
+
+fun make-sci(prefix, underlying-num, underlying-num-str, max-chars) block:
   # spy "make-sci": prefix, underlying-num, underlying-num-str end
   u-len = string-length(underlying-num-str)
   girth = num-floor(log-base(10, num-abs(underlying-num)))
-  # spy 'girth': girth end
   neg-girth = 0 - girth
+  # spy 'girth': girth, neg-girth end
   decimal-point-position = string-index-of(underlying-num-str, '.')
   int-str = if decimal-point-position > -1:
     string-substring(underlying-num-str, 0, decimal-point-position)
@@ -67,28 +71,34 @@ fun make-sci(prefix, underlying-num, underlying-num-str, max-chars):
     string-substring(underlying-num-str, decimal-point-position + 1, u-len)
     else: ''
     end
+  # spy: int-str, dec-str end
   dec-str-len = string-length(dec-str)
-  int-part = if girth >= 0:
+  int-part = if (girth > 0) and (girth < max-chars): int-str + '.'
+    else if girth >= 0:
     string-substring(int-str, 0, 1) + '.'
     else: string-substring(dec-str, neg-girth - 1, neg-girth) + '.'
     end
-  dec-part = if girth >= 0:
+  dec-part = if (girth > 0) and (girth < max-chars): dec-str
+    else if girth >= 0:
     string-substring(int-str, 1, string-length(int-str)) +
                 dec-str
     else if neg-girth == dec-str-len: '0'
     else: string-substring(dec-str, neg-girth, dec-str-len)
     end
-  expt-part = if girth == 0: ''
+  expt-part = if (girth > 0) and (girth < max-chars): ''
+              else if girth == 0: ''
               else if girth > 0: 'e' + num-to-string(girth)
               else: 'e-' + num-to-string(neg-girth)
               end
+  # spy: int-part, dec-part, expt-part end
     
   if (string-length(prefix) + string-length(int-part) + 
      string-length(dec-part) + string-length(expt-part)) <= max-chars:
+     # spy: fixme: 100 end
      prefix + int-part  + dec-part   + expt-part
   else:
-     shrink-dec(prefix + int-part + dec-part,
-       max-chars - (string-length(expt-part))) + expt-part
+    # spy: fixme: 101 end
+     shrink-dec(prefix + int-part + dec-part + expt-part, max-chars)
   end
 end
 
@@ -141,33 +151,44 @@ fun make-unsci(prefix, underlying-num-str, u-len):
   end
 end
 
-fun shrink-dec-part(dec-part, max-chars):
-  ss1 = string-substring(dec-part, 0, max-chars - 1)
-  ss2n = string-to-number-i(string-substring(dec-part, max-chars - 1, max-chars))
-  ss3n = string-to-number-i(string-substring(dec-part, max-chars, max-chars + 1))
-  ss1 + num-to-string(if ss3n >= 5: ss2n + 1 else: ss2n end)
+fun make-zero-string(n):
+  fold(lam(acc, _): acc + '0' end, '', range(0, n))
 end
 
+fun shrink-dec-part(dec-part, max-chars) block:
+  dec-part-len = string-length(dec-part)
+  girth = get-girth(string-to-number-i(dec-part))
+  left-0-padding = make-zero-string(dec-part-len - (girth + 1))
+  var ss1n = string-to-number-i(string-substring(dec-part, 0, max-chars))
+  ss2n = string-to-number-i(string-substring(dec-part, max-chars, max-chars + 1))
+  # spy: sdp-fixme: 1, dec-part, max-chars, ss1n, ss2n end
+  if ss2n >= 5: ss1n := ss1n + 1 else: false end
+  left-0-padding + num-to-string(ss1n)
+end
+
+
+
 fun shrink-dec(num-str, max-chars):
-  # spy 'shrink-dec of': num-str end
+  # spy 'shrink-dec of': num-str, max-chars end
   len = string-length(num-str)
   if len == max-chars: num-str
   else:
     decimal-position = string-index-of(num-str, '.')
     if (decimal-position + 1) == max-chars:
-      # spy: fixme: 1 end
+      # spy: shrink-dec-fixme: 1 end
       string-substring(num-str, 0, decimal-position)
     else if decimal-position <= max-chars:
-      # spy: fixme: 2 end
+      # spy: shrink-dec-fixme: 2 end
       int-part = string-substring(num-str, 0, decimal-position)
+      int-part-len = string-length(int-part)
       dec-expt-part = string-substring(num-str, decimal-position + 1, len)
       expt-position = string-index-of(dec-expt-part, 'e')
       if expt-position == -1:
-        shrink-dec-part(num-str, max-chars)
+        dec-part-mod = shrink-dec-part(dec-expt-part, max-chars - (int-part-len + 1))
+        int-part + '.' + dec-part-mod
       else:
-        # spy: fixme: 2.1 end
+        # spy: shrink-dec-fixme: 2.1 end
         # spy: int-part, dec-expt-part end
-        int-part-len = string-length(int-part)
         dec-expt-part-len = string-length(dec-expt-part)
         dec-part = string-substring(dec-expt-part, 0, expt-position)
         expt-part = string-substring(dec-expt-part, expt-position, dec-expt-part-len)
@@ -184,7 +205,7 @@ fun shrink-dec(num-str, max-chars):
         end
       end
     else:
-      # spy: fixme: 3 end
+      # spy: shrink-dec-fixme: 3 end
       num-str
     end
   end
@@ -221,8 +242,11 @@ fun num-to-sci(n, max-chars) block:
       if (girth < 0) and (girth > -3):
         # spy: fixme: 2.4 end
         shrink-dec(prefix + underlying-num-str, max-chars)
-      else if string-length(sci-num-str) <= max-chars: sci-num-str
+      else if string-length(sci-num-str) <= max-chars:
+        # spy: fixme: 2.5 end
+        sci-num-str
       else if not(string-contains(underlying-num-str, '/')): 
+        # spy: fixme: 2.6 end
         shrink-dec(prefix + underlying-num-str, max-chars)
       else:
         # spy: fixme: 3 end
@@ -241,6 +265,7 @@ fun num-to-sci(n, max-chars) block:
     end
   end
 where:
+
   num-to-sci(0.00000343, 10) is "0.00000343" # max fixnum size (small)
   num-to-sci(0.000000343, 11) is "0.00000343"
   num-to-sci(0.00000343, 8) is "3.43e-6"
@@ -261,11 +286,25 @@ where:
   num-to-sci(0.011238, 7) is "0.01124" # not 0.01123
   num-to-sci(12387691745124903567102, 7) is "1.24e22" # not 1.23876
   num-to-sci(0.0000000000456, 7) is "4.6e-11" # not 4.56e-1
+  num-to-sci(203.680147, 9) is "203.68015" # not 2.0368e2
+  num-to-sci(103.40123123,9) is "103.40123" # not 1.0340e2
+  num-to-sci(20368014712358, 9) is "2.0368e13"
+
+  num-to-sci(20368.0147, 9) is "20368.015"
+  num-to-sci(203680.147, 9) is "203680.15"
+  num-to-sci(2036801.47, 9) is "2036801.5"
+  num-to-sci(20368014.7, 9) is "20368014" # "2.03680e7"
+
+  num-to-sci(0.00001284567, 8) is "1.285e-5" # "0.00001"
+  num-to-sci(0.00001284567, 9) is "1.2846e-5" # "0.000013"
+  num-to-sci(0.00001234567, 7) is "1.23e-5" # "1.2e-5"
+  num-to-sci(0.000001239567, 8) is "1.240e-6"
+
 end
 # print(num-to-sci(23e3, 18))
 
 # fun t():
-#   # [list: 0.011238, 7, num-to-sci(0.011238, 7), "0.01124", "0.01123"]
-#   # [list: 12387691745124903567102, 7, num-to-sci(12387691745124903567102, 7), "1.24e22", "1.23876"]
-#   [list: 0.0000000000456, 7, num-to-sci(0.0000000000456, 7), "4.6e-11", "4.56e-1"]
+#   [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
 # end
+
+# num-to-sci(203.680147,9) should evaluate to ~203.6801 instead of ~2.0368e2
