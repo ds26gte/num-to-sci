@@ -30,9 +30,19 @@ fun log(n): log-base(10, n) end
 ln = num-log
 
 # utility functions
-fun fake-num-to-fixnum(n):
+fun fake-num-to-fixnum(n) block:
   var s = num-to-string(num-to-roughnum(n))
-  string-substring(s, 1, string-length(s))
+  var len = string-length(s)
+  s := string-substring(s, 1, len)
+  len := len - 1
+  expt-position = string-index-of(s, 'e')
+  if expt-position == -1: s
+  else:
+    if string-substring(s, expt-position + 1, expt-position + 2) == '+':
+      string-substring(s, 0, expt-position) + string-substring(s, expt-position + 2, len)
+    else: s
+    end
+  end
 end
 
 fun string-to-number-i(s):
@@ -118,33 +128,64 @@ fun make-unsci(prefix, underlying-num-str, u-len):
     mantissa-int-len = string-length(mantissa-int-str)
     if mantissa-int-len == exponent:
       prefix + "0." + mantissa-int-str + mantissa-frac-str
-    else if mantissa-int-len < exponent: 
+    else if mantissa-int-len < exponent:
       prefix + "0." + string-repeat('0', (exponent - mantissa-int-len) - 1) +
       mantissa-int-str + mantissa-frac-str
     else:
       prefix +
       string-substring(mantissa-int-str, 0, mantissa-int-len - exponent) +
-      "." + 
+      "." +
       string-substring(mantissa-int-str, mantissa-int-len - exponent,
       mantissa-int-len)
     end
   end
 end
 
+fun shrink-dec-part(dec-part, max-chars):
+  ss1 = string-substring(dec-part, 0, max-chars - 1)
+  ss2n = string-to-number-i(string-substring(dec-part, max-chars - 1, max-chars))
+  ss3n = string-to-number-i(string-substring(dec-part, max-chars, max-chars + 1))
+  ss1 + num-to-string(if ss3n >= 5: ss2n + 1 else: ss2n end)
+end
+
 fun shrink-dec(num-str, max-chars):
-  # spy 'shrink-dec of':  num-str end
+  # spy 'shrink-dec of': num-str end
   len = string-length(num-str)
   if len == max-chars: num-str
   else:
     decimal-position = string-index-of(num-str, '.')
     if (decimal-position + 1) == max-chars:
+      # spy: fixme: 1 end
       string-substring(num-str, 0, decimal-position)
     else if decimal-position <= max-chars:
-      ss1 = string-substring(num-str, 0, max-chars - 1)
-      ss2n = string-to-number-i(string-substring(num-str, max-chars - 1, max-chars))
-      ss3n = string-to-number-i(string-substring(num-str, max-chars, max-chars + 1))
-      ss1 + num-to-string(if ss3n >= 5: ss2n + 1 else: ss2n end)
-    else: num-str
+      # spy: fixme: 2 end
+      int-part = string-substring(num-str, 0, decimal-position)
+      dec-expt-part = string-substring(num-str, decimal-position + 1, len)
+      expt-position = string-index-of(dec-expt-part, 'e')
+      if expt-position == -1:
+        shrink-dec-part(num-str, max-chars)
+      else:
+        # spy: fixme: 2.1 end
+        # spy: int-part, dec-expt-part end
+        int-part-len = string-length(int-part)
+        dec-expt-part-len = string-length(dec-expt-part)
+        dec-part = string-substring(dec-expt-part, 0, expt-position)
+        expt-part = string-substring(dec-expt-part, expt-position, dec-expt-part-len)
+        # spy: dec-part, expt-part end
+        dec-part-len = string-length(dec-part)
+        expt-part-len = string-length(expt-part)
+        dec-max-chars = max-chars - (int-part-len + expt-part-len + 1)
+        # spy: int-part-len, dec-part-len, expt-part-len, dec-max-chars end
+        if dec-part-len <= dec-max-chars:
+          num-str
+        else:
+          dec-part-mod = shrink-dec-part(dec-part, dec-max-chars)
+          int-part + '.' + dec-part-mod + expt-part
+        end
+      end
+    else:
+      # spy: fixme: 3 end
+      num-str
     end
   end
 end
@@ -160,13 +201,15 @@ fun num-to-sci(n, max-chars) block:
   u-len = string-length(underlying-num-str)
   g-len = (if negativep: 1 else: 0 end) + (if roughp: 1 else: 0 end) + u-len
   prefix = (if roughp: '~' else: '' end) + (if negativep: '-' else: '' end)
-  if not(string-contains(underlying-num-str, 'e')): 
+  if not(string-contains(underlying-num-str, 'e')):
     # spy: fixme: 1, g-len, max-chars end
-    if g-len <= max-chars: 
-      if not(string-contains(underlying-num-str, '/') or
-             string-contains(underlying-num-str, '.')):
+    if g-len <= max-chars:
+      if not(string-contains(underlying-num-str, '/') or string-contains(underlying-num-str, '.')):
+        # spy: fixme: 1 end
         num-to-string(n)
-      else: prefix + underlying-num-str
+      else:
+        # spy: fixme: 1.1 end
+        prefix + underlying-num-str
       end
     else if num-to-fixnum(underlying-num) == 0: prefix + '0'
     else:
@@ -188,11 +231,13 @@ fun num-to-sci(n, max-chars) block:
     end
   else:
     unsci-num-str = make-unsci(prefix, underlying-num-str, u-len)
-    # spy "unsci": prefix, underlying-num-str, unsci-num-str end
+    # spy "unsci": prefix, underlying-num-str, unsci-num-str, g-len, max-chars end
+    # spy: unsci-num-str-len: string-length(unsci-num-str) end
     if string-length(unsci-num-str) <= max-chars: unsci-num-str
     else if g-len <= max-chars: prefix + underlying-num-str
-    # else: shrink-num(prefix, underlying-num, max-chars)
-    else: shrink-dec(prefix + underlying-num-str, max-chars)
+    else:
+      # spy: fixme: 4 end
+      shrink-dec(prefix + underlying-num-str, max-chars)
     end
   end
 where:
@@ -213,5 +258,14 @@ where:
   num-to-sci(1 + 1/3, 8) is "1.333333"
   num-to-sci(2.712828, 7) is "2.71283" # rounding
   num-to-sci(3.1415962, 8) is "3.141596" # rounding
+  num-to-sci(0.011238, 7) is "0.01124" # not 0.01123
+  num-to-sci(12387691745124903567102, 7) is "1.24e22" # not 1.23876
+  num-to-sci(0.0000000000456, 7) is "4.6e-11" # not 4.56e-1
 end
 # print(num-to-sci(23e3, 18))
+
+# fun t():
+#   # [list: 0.011238, 7, num-to-sci(0.011238, 7), "0.01124", "0.01123"]
+#   # [list: 12387691745124903567102, 7, num-to-sci(12387691745124903567102, 7), "1.24e22", "1.23876"]
+#   [list: 0.0000000000456, 7, num-to-sci(0.0000000000456, 7), "4.6e-11", "4.56e-1"]
+# end
