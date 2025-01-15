@@ -166,17 +166,24 @@ fun shrink-dec-part(dec-part, max-chars) block:
   left-0-padding + num-to-string(ss1n)
 end
 
-
-
 fun shrink-dec(num-str, max-chars):
   # spy 'shrink-dec of': num-str, max-chars end
   len = string-length(num-str)
   if len == max-chars: num-str
   else:
     decimal-position = string-index-of(num-str, '.')
-    if (decimal-position + 1) == max-chars:
-      # spy: shrink-dec-fixme: 1 end
-      string-substring(num-str, 0, decimal-position)
+    if ((decimal-position + 1) == max-chars) block:
+      var digit-after-point = 0
+      if max-chars < len:
+        digit-after-point := string-to-number-i(string-substring(num-str, decimal-position + 1, decimal-position + 2))
+      else: false
+      end
+      var wholenum = string-to-number-i(string-substring(num-str, 0, decimal-position))
+      if digit-after-point >= 5:
+        wholenum := wholenum + 1
+      else: false
+      end
+      num-to-string(wholenum)
     else if decimal-position <= max-chars:
       # spy: shrink-dec-fixme: 2 end
       int-part = string-substring(num-str, 0, decimal-position)
@@ -293,7 +300,7 @@ where:
   num-to-sci(20368.0147, 9) is "20368.015"
   num-to-sci(203680.147, 9) is "203680.15"
   num-to-sci(2036801.47, 9) is "2036801.5"
-  num-to-sci(20368014.7, 9) is "20368014" # "2.03680e7"
+  num-to-sci(20368014.7, 9) is "20368015" # "2.03680e7"
 
   num-to-sci(0.00001284567, 8) is "1.285e-5" # "0.00001"
   num-to-sci(0.00001284567, 9) is "1.2846e-5" # "0.000013"
@@ -303,8 +310,9 @@ where:
 end
 # print(num-to-sci(23e3, 18))
 
-# fun t():
+fun t():
+  [list: num-to-sci(20368014.7, 9),  "20368014"]
 #   [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
-# end
+end
 
 # num-to-sci(203.680147,9) should evaluate to ~203.6801 instead of ~2.0368e2
