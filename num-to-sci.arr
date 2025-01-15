@@ -202,16 +202,16 @@ where:
   num-to-sci(0.00000343, 9) is "3.43e-6"
   num-to-sci(4564634745675734, 16) is "4564634745675734" # max fixnum size (big)
   num-to-sci(45646347456757342, 17) is "45646347456757342"
-  num-to-sci(45646347456757342, 16) is "4.56463474567e16"
-  num-to-sci(4564634745675734, 15) is "4.5646347456e15" 
-  num-to-sci(-45646347456757342.000343, 16) is "-4.5646347456e16"
+  num-to-sci(45646347456757342, 16) is "4.56463474568e16"
+  num-to-sci(4564634745675734, 15) is "4.5646347457e15"
+  num-to-sci(-45646347456757342.000343, 16) is "-4.5646347457e16"
   num-to-sci(0.000001, 8) is "0.000001"
   num-to-sci(-0.000001, 8) is "-1.0e-6"
   num-to-sci(1/3, 18) is "0.3333333333333333"
   num-to-sci(1/3, 19) is "0.3333333333333333" # extra char is unused due to fixnum precision
   num-to-sci(1/3, 8) is "0.333333"
   num-to-sci(1 + 1/3, 8) is "1.333333"
-  num-to-sci(2.712828, 7) is "2.71273" # rounding
+  num-to-sci(2.712828, 7) is "2.71283" # rounding
   num-to-sci(3.1415962, 8) is "3.141596" # rounding
 end
 # print(num-to-sci(23e3, 18))
