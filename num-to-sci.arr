@@ -254,10 +254,10 @@ fun num-to-sci(n, max-chars) block:
         prefix + sci-num-str
       else if not(string-contains(underlying-num-str, '/')):
         # spy: fixme: 2.6 end
-        prefix + shrink-dec(underlying-num-str, max-chars)
+        prefix + shrink-dec(underlying-num-str, max-chars-mod)
       else:
         # spy: fixme: 3 end
-        sci-num-str
+        prefix + sci-num-str
       end
     end
   else:
