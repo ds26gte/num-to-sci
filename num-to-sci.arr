@@ -47,6 +47,63 @@ fun fake-num-to-fixnum(n) block:
   end
 end
 
+fun fake-num-to-fixnum-no-exp(n) block:
+  # spy 'fake-num-to-fixnum-no-exp of': n end
+  var s = fake-num-to-fixnum(n)
+  e-position = string-index-of(s, 'e')
+  if e-position == -1 block: s
+  else:
+    var s-len = string-length(s)
+    exponent = string-to-number-i(string-substring(s, e-position + 1, s-len))
+    s := string-substring(s, 0, e-position)
+    s-len := string-length(s)
+    point-position = string-index-of(s, '.')
+    var int-part = '0'
+    var fract-part = ''
+    if point-position == -1 block:
+      int-part := s
+    else:
+      int-part := string-substring(s, 0, point-position)
+      fract-part := string-substring(s, point-position + 1, s-len)
+    end
+    var int-part-len = string-length(int-part)
+    var fract-part-len = string-length(fract-part)
+    var moving-digit = ''
+    if exponent == 0: false
+    else if exponent < 1:
+      for each(_ from L.range(0, 0 - exponent)) block:
+        if int-part-len > 0 block:
+          moving-digit := string-substring(int-part, int-part-len - 1, int-part-len)
+          int-part := string-substring(int-part, 0, int-part-len - 1)
+          int-part-len := int-part-len - 1
+        else:
+          moving-digit := '0'
+        end
+        fract-part := moving-digit + fract-part
+        fract-part-len := fract-part-len + 1
+      end
+    else if exponent > 0:
+      for each(_ from L.range(0, exponent)) block:
+        if fract-part-len > 0 block:
+          moving-digit := string-substring(fract-part, 0, 1)
+          fract-part := string-substring(fract-part, 1, fract-part-len)
+          fract-part-len := fract-part-len - 1
+        else:
+          moving-digit := '0'
+        end
+        int-part := int-part + moving-digit
+        int-part-len := int-part-len + 1
+      end
+    end
+    if int-part == '': int-part := '0' else: false end
+    if string-to-number-i(fract-part) == 0:
+      int-part
+    else:
+      int-part + '.' + fract-part
+    end
+  end
+end
+
 fun string-to-number-i(s):
   cases(Option) string-to-number(s):
   | some(n) => n
@@ -55,7 +112,9 @@ fun string-to-number-i(s):
 end
 
 fun get-girth(n):
-  num-floor(log-base(10, num-abs(n)))
+  if n == 0: 0
+  else: num-floor(log-base(10, num-abs(n)))
+  end
 end
 
 fun make-sci(underlying-num, underlying-num-str, max-chars) block:
@@ -157,6 +216,7 @@ fun make-zero-string(n):
 end
 
 fun shrink-dec-part(dec-part, max-chars) block:
+  # spy 'shrink-dec-part of': dec-part, max-chars end
   dec-part-len = string-length(dec-part)
   girth = get-girth(string-to-number-i(dec-part))
   left-0-padding = make-zero-string(dec-part-len - (girth + 1))
@@ -220,7 +280,7 @@ fun shrink-dec(num-str, max-chars):
 end
 
 fun num-to-sci(n, max-chars) block:
-  # spy 'num-to-sci of': n end
+  # spy 'num-to-sci of': n, max-chars end
   negativep = (n < 0)
   roughp = num-is-roughnum(n)
   underlying-num = if negativep: 0 - n else: n end
@@ -314,16 +374,21 @@ end
 
 
 fun easy-num-repr(n, max-chars) block:
+  # spy 'easy-num-repr of': n, max-chars end
   negativep = (n < 0)
   roughp = num-is-roughnum(n)
   prefix = (if roughp: '~' else: '' end) + (if negativep: '-' else: '' end)
   prefix-len = string-length(prefix)
-  max-chars-mod = max-chars # - prefix-len
-  underlying-num = num-to-fixnum(if negativep: 0 - n else: n end)
-  underlying-num-str = fake-num-to-fixnum(underlying-num)
+  max-chars-mod = max-chars - prefix-len
+  var underlying-num = if negativep: 0 - n else: n end
+  if roughp:
+    underlying-num := num-to-fixnum(underlying-num)
+  else: false
+  end
+  underlying-num-str = fake-num-to-fixnum-no-exp(underlying-num)
   decimal-point-position = string-index-of(underlying-num-str, '.')
   underlying-num-str-len = string-length(underlying-num-str)
-  # spy: underlying-num, underlying-num-str, underlying-num-str-len end
+  # spy: underlying-num, underlying-num-str, underlying-num-str-len, max-chars-mod end
   var int-str = underlying-num-str
   var dec-str = ''
   if decimal-point-position > -1 block:
@@ -334,39 +399,48 @@ fun easy-num-repr(n, max-chars) block:
   # spy: int-str, dec-str end
   var output = ''
   if underlying-num == 1 block:
-    prefix + '1'
+    output := '1'
   else:
-    var len-2 = 0
+    var min-len-needed = 0
     if underlying-num > 1:
-      len-2 := string-length(int-str)
+      min-len-needed := string-length(int-str)
     else:
-      len-2 := (0 - get-girth(underlying-num)) + 2
+      min-len-needed := (0 - get-girth(underlying-num)) + 2
     end
-    # spy: len-2, max-chars-mod end
-    if len-2 <= max-chars-mod block:
+    # spy: min-len-needed, underlying-num-str-len, max-chars-mod end
+    if (min-len-needed <= underlying-num-str-len) and (min-len-needed <= max-chars-mod) and (max-chars-mod <= underlying-num-str-len) block:
       # spy: fixme: 'ez' end
-      if len-2 < max-chars-mod: len-2 := len-2 + 1 else: false end
-        # spy: len-2, decimal-point-position end
-      if (len-2 - 1) == decimal-point-position: len-2 := len-2 + 1 else: false end
-      num-2 = string-substring(underlying-num-str, 0, len-2)
-      # spy: len-2, num-2 end
-      output := prefix + num-to-sci(string-to-number-i(num-2), max-chars-mod)
+      var rounding-check-p = false
+      if max-chars-mod == underlying-num-str-len:
+        output := string-substring(underlying-num-str, 0, max-chars-mod)
+      else:
+        var num-2 = string-substring(underlying-num-str, 0, max-chars-mod + 1)
+        if underlying-num > 1:
+          output := prefix + num-to-sci(string-to-number-i(num-2), max-chars-mod)
+        else: output := prefix + '0.' + shrink-dec-part(string-substring(num-2, 2, string-length(num-2)), max-chars-mod - 2)
+        end
+      end
     else: output := num-to-sci(n, max-chars)
     end
-    output
+    prefix + output
   end
   where:
     easy-num-repr(0.0001234, 6) is "0.0001"
     easy-num-repr(2343.234, 6) is "2343.2"
     easy-num-repr(0.000000001234, 6) is "1.2e-9"
     easy-num-repr(2343243432.234, 6) is "2.34e9"
+    easy-num-repr(~0.082805, 9) is "~0.082805"
 end
 
-# fun t():
-#     [list: easy-num-repr(2343.234, 6), "2343.2"]
-#   # [list: easy-num-repr(0.0001234, 6), "0.0001"]
-#   # [list: num-to-sci(20368014.7, 9),  "20368014"]
-#   # [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
-# end
+fun t():
+  # easy-num-repr(0.0001234, 6)
+  # [list: easy-num-repr(2343.234, 6), "2343.2"]
+  # [list: easy-num-repr(0.000000001234, 6) , 0.000000001234, 6, "1.2e-9"]
+  # [list:    easy-num-repr(0.0001234, 6) , "0.0001"]
+  easy-num-repr(~0.082805, 9)
+  # [list: easy-num-repr(0.0001234, 6), "0.0001"]
+  # [list: num-to-sci(20368014.7, 9),  "20368014"]
+  # [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
+end
 
 # num-to-sci(203.680147,9) should evaluate to ~203.6801 instead of ~2.0368e2
