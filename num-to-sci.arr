@@ -333,7 +333,9 @@ fun easy-num-repr(n, max-chars) block:
   end
   # spy: int-str, dec-str end
   var output = ''
-  if underlying-num == 1 block: prefix + '1'
+  if (not(num-is-roughnum(underlying-num))
+      and (underlying-num == 1)) block: 
+    prefix + '1'
   else:
     var len-2 = 0
     if underlying-num > 1:
