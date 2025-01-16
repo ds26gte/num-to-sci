@@ -1,3 +1,5 @@
+import lists as L
+
 #################################################
 # Numerical functions
 
@@ -151,7 +153,7 @@ fun make-unsci(underlying-num-str, u-len):
 end
 
 fun make-zero-string(n):
-  fold(lam(acc, _): acc + '0' end, '', range(0, n))
+  fold(lam(acc, _): acc + '0' end, '', L.range(0, n))
 end
 
 fun shrink-dec-part(dec-part, max-chars) block:
