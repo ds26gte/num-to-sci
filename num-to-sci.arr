@@ -319,7 +319,7 @@ fun easy-num-repr(n, max-chars) block:
   prefix = (if roughp: '~' else: '' end) + (if negativep: '-' else: '' end)
   prefix-len = string-length(prefix)
   max-chars-mod = max-chars # - prefix-len
-  underlying-num = if negativep: 0 - n else: n end
+  underlying-num = num-to-fixnum(if negativep: 0 - n else: n end)
   underlying-num-str = fake-num-to-fixnum(underlying-num)
   decimal-point-position = string-index-of(underlying-num-str, '.')
   underlying-num-str-len = string-length(underlying-num-str)
@@ -333,8 +333,7 @@ fun easy-num-repr(n, max-chars) block:
   end
   # spy: int-str, dec-str end
   var output = ''
-  if (not(num-is-roughnum(underlying-num))
-      and (underlying-num == 1)) block: 
+  if underlying-num == 1 block:
     prefix + '1'
   else:
     var len-2 = 0
