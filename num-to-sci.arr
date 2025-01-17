@@ -100,13 +100,14 @@ fun make-sci(underlying-num, underlying-num-str, max-chars) block:
               end
   # spy: int-part, dec-part, expt-part end
 
-  if (string-length(int-part) +
-     string-length(dec-part) + string-length(expt-part)) <= max-chars:
-     # spy: fixme: 100 end
-     int-part + dec-part + expt-part
+  output = int-part + dec-part + expt-part
+
+  if string-length(output) <= max-chars:
+    # spy: fixme: 100 end
+    output
   else:
     # spy: fixme: 101 end
-     shrink-dec(int-part + dec-part + expt-part, max-chars)
+    shrink-dec(output, max-chars)
   end
 end
 
@@ -166,14 +167,25 @@ end
 
 fun shrink-dec-part(dec-part, max-chars) block:
   # spy 'shrink-dec-part of': dec-part, max-chars end
+  if max-chars < 0:
+    raise("Cannot compress '" + dec-part + "' to " + num-to-string(max-chars) + " chars")
+  else: false
+  end
   dec-part-len = string-length(dec-part)
   girth = get-girth(string-to-number-i(dec-part))
   var left-0-padding-len = dec-part-len - (girth + 1)
-  var ss1n = string-to-number-i(string-substring(dec-part, 0, max-chars))
-  var ss1n-girth = get-girth(ss1n)
+  ss1n-str = string-substring(dec-part, 0, max-chars)
+  var ss1n = 0
+  var ss1n-girth = -1
+  if ss1n-str <> '' block:
+    ss1n := string-to-number-i(ss1n-str)
+    ss1n-girth := get-girth(ss1n)
+  else: false
+  end
   orig-ss1n-girth = ss1n-girth
   ss2n = string-to-number-i(string-substring(dec-part, max-chars, max-chars + 1))
-  # spy: sdp-fixme: 1, dec-part, max-chars, ss1n, ss2n end
+  # spy: fixme: 177 end
+  # spy: dec-part, max-chars, ss1n, ss2n end
   if ss2n >= 5 block:
     ss1n := ss1n + 1
     ss1n-girth := get-girth(ss1n)
@@ -192,62 +204,76 @@ fun shrink-dec-part(dec-part, max-chars) block:
 end
 
 fun shrink-dec(num-str, max-chars):
-  # spy 'shrink-dec of': num-str, max-chars end
   len = string-length(num-str)
-  if len == max-chars: num-str
+  # spy 'shrink-dec of': num-str, max-chars, len end
+  if len <= max-chars block: num-str
   else:
-    decimal-position = string-index-of(num-str, '.')
-    if ((decimal-position + 1) == max-chars) block:
-      var digit-after-point = 0
-      if max-chars < len:
-        digit-after-point := string-to-number-i(string-substring(num-str, decimal-position + 1, decimal-position + 2))
-      else: false
-      end
-      var wholenum = string-to-number-i(string-substring(num-str, 0, decimal-position))
-      if digit-after-point >= 5:
-        wholenum := wholenum + 1
-      else: false
-      end
-      num-to-string(wholenum)
-    else if decimal-position <= max-chars:
-      # spy: shrink-dec-fixme: 2 end
-      int-part = string-substring(num-str, 0, decimal-position)
-      int-part-len = string-length(int-part)
-      int-part-num = string-to-number-i(int-part)
-      dec-expt-part = string-substring(num-str, decimal-position + 1, len)
-      expt-position = string-index-of(dec-expt-part, 'e')
-      if expt-position == -1:
-        dec-part-mod = shrink-dec-part(dec-expt-part, max-chars - (int-part-len + 1))
-        if dec-part-mod == 'overflow':
-          num-to-string(int-part-num + 1)
-        else:
-          int-part + '.' + dec-part-mod
-        end
+    dot-position = string-index-of(num-str, '.')
+    var int-part = '0'
+    var frac-expt-part = ''
+    var frac-part = ''
+    var expt-part = ''
+    if dot-position < 0 block:
+      e-position = string-index-of(num-str, 'e')
+      if e-position < 0 block:
+        int-part := num-str
       else:
-        # spy: shrink-dec-fixme: 2.1 end
-        # spy: int-part, dec-expt-part end
-        dec-expt-part-len = string-length(dec-expt-part)
-        dec-part = string-substring(dec-expt-part, 0, expt-position)
-        expt-part = string-substring(dec-expt-part, expt-position, dec-expt-part-len)
-        # spy: dec-part, expt-part end
-        dec-part-len = string-length(dec-part)
-        expt-part-len = string-length(expt-part)
-        dec-max-chars = max-chars - (int-part-len + expt-part-len + 1)
-        # spy: int-part-len, dec-part-len, expt-part-len, dec-max-chars end
-        if dec-part-len <= dec-max-chars:
-          num-str
-        else:
-          dec-part-mod = shrink-dec-part(dec-part, dec-max-chars)
-          if dec-part-mod == 'overflow':
-            num-to-string(int-part-num + 1) + expt-part
-          else:
-            int-part + '.' + dec-part-mod + expt-part
-          end
-        end
+        int-part := string-substring(num-str, 0, e-position)
+        expt-part := string-substring(e-position, len)
       end
     else:
-      # spy: shrink-dec-fixme: 3 end
-      num-str
+      int-part := string-substring(num-str, 0, dot-position)
+      frac-expt-part := string-substring(num-str, dot-position + 1, len)
+      e-position = string-index-of(frac-expt-part, 'e')
+      if e-position < 0 block:
+        frac-part := frac-expt-part
+      else:
+        frac-expt-part-len = string-length(frac-expt-part)
+        frac-part := string-substring(frac-expt-part, 0, e-position)
+        expt-part := string-substring(frac-expt-part, e-position, frac-expt-part-len)
+      end
+    end
+    # spy: int-part, frac-part, expt-part end
+    int-part-len = string-length(int-part)
+    frac-part-len = string-length(frac-part)
+    expt-part-len = string-length(expt-part)
+    int-part-num = string-to-number-i(int-part)
+    var output = ''
+    if int-part-len <= max-chars block:
+      if expt-part-len == 0 block:
+        if frac-part-len == 0:
+          output := int-part
+        else:
+          # spy: fixme: 302 end
+          frac-part-mod = shrink-dec-part(frac-part,
+          max-chars - (int-part-len + 1))
+          # spy: frac-part-mod end
+          if frac-part-mod == 'overflow':
+            output := num-to-string(int-part-num + 1)
+          else if frac-part-mod == '':
+            output := int-part
+          else:
+            output := int-part + '.' + frac-part-mod
+          end
+        end
+      else:
+        var int-dec-part = ''
+        frac-part-mod = shrink-dec-part(frac-part,
+        max-chars - (int-part-len + expt-part-len + 1))
+        if frac-part-mod == 'overflow':
+          int-dec-part := num-to-string(int-part-num + 1)
+        else if frac-part-mod == '':
+          int-dec-part := int-part
+        else:
+          int-dec-part := int-part + '.' + frac-part-mod
+        end
+        output := int-dec-part + expt-part
+      end
+      # spy 'shrink-dec returned': output end
+      output
+    else:
+      raise('shrink-dec: Could not fit ' + num-str + ' into ' +
+      num-to-string(max-chars) + ' chars')
     end
   end
 end
@@ -282,9 +308,9 @@ fun num-to-sci(n, max-chars) block:
     else if underlying-num == 0: prefix + '0'
     else:
       girth = num-floor(log-base(10, num-abs(underlying-num)))
-      # spy: fixme: 2, girth, underlying-num-str end
       sci-num-str = make-sci(underlying-num, underlying-num-str,
          max-chars-mod)
+      # spy: fixme: 2, girth, underlying-num-str, sci-num-str, max-chars-mod end
       # spy: sci-num-str end
       if (girth < 0) and (girth > -3):
         # spy: fixme: 2.4 end
@@ -353,6 +379,7 @@ where:
   num-to-sci(0.0999999, 5) is "0.100"
   num-to-sci(0.9999999, 5) is "1"
 
+  num-to-sci(9999.99, 3) raises "Cannot compress"
 end
 # print(num-to-sci(23e3, 18))
 
@@ -423,20 +450,23 @@ where:
   easy-num-repr(~0.082805, 9) is "~0.082805"
   easy-num-repr(0.0999999, 5) is "0.100"
   easy-num-repr(0.9999999, 5) is "1"
+  easy-num-repr(9999.99, 3) raises "Cannot compress"
 end
 
-fun t():
-  # easy-num-repr(0.0001234, 6)
-  # [list: easy-num-repr(2343.234, 6), "2343.2"]
-  # [list: easy-num-repr(0.000000001234, 6) , 0.000000001234, 6, "1.2e-9"]
-  # [list:    easy-num-repr(0.0001234, 6) , "0.0001"]
-  easy-num-repr(~0.082805, 9)
-  # [list: shrink-dec("0.9999999", 5),  shrink-dec-part("99999999", 3)]
-   # num-to-sci(0.099999, 5)
-   # easy-num-repr(0.099999,5)
-  # [list: easy-num-repr(0.0001234, 6), "0.0001"]
-  # [list: num-to-sci(20368014.7, 9),  "20368014"]
-  # [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
-end
+# fun t():
+#   # easy-num-repr(0.0001234, 6)
+#   # [list: easy-num-repr(2343.234, 6), "2343.2"]
+#   # [list: easy-num-repr(0.000000001234, 6) , 0.000000001234, 6, "1.2e-9"]
+#   # [list: easy-num-repr(0.0001234, 6) , "0.0001"]
+#   num-to-sci(20368014.7, 9) # "20368015"
+#   # num-to-sci(100000, 2)
+#   # easy-num-repr(~0.082805, 9)
+#   # [list: shrink-dec("0.9999999", 5), shrink-dec-part("99999999", 3)]
+#   # num-to-sci(0.099999, 5)
+#   # easy-num-repr(0.099999,5)
+#   # [list: easy-num-repr(0.0001234, 6), "0.0001"]
+#   # [list: num-to-sci(20368014.7, 9), "20368014"]
+#   # [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
+# end
 
 # num-to-sci(203.680147,9) should evaluate to ~203.6801 instead of ~2.0368e2
