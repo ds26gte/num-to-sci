@@ -1,3 +1,4 @@
+use context starter2024
 import lists as L
 
 #################################################
@@ -5,7 +6,7 @@ import lists as L
 
 # round digits to something reasonable
 fun round-digits(val, digits):
-  num-round(val * num-expt(10, digits)) / num-expt(10, digits)
+  num-round(val * expt(10, digits)) / expt(10, digits)
 where:
   round-digits(1.24, 1) is 1.2
   round-digits(num-sqrt(2), 3) is 1.414
@@ -15,7 +16,7 @@ end
 fun log-base(base, val):
   lg = num-log(val) / num-log(base)
   lg-round = round-digits(lg, 4)
-  if roughly-equal(lg-round, lg) and roughly-equal(num-expt(base, lg-round), val):
+  if roughly-equal(lg-round, lg) and roughly-equal(expt(base, lg-round), val):
     lg-round
   else:
     lg
