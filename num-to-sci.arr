@@ -168,39 +168,41 @@ end
 
 fun shrink-dec-part(dec-part, max-chars) block:
   # spy 'shrink-dec-part of': dec-part, max-chars end
-  if max-chars < 0:
-    raise("Cannot compress '" + dec-part + "' to " + num-to-string(max-chars) + " chars")
-  else: false
-  end
   dec-part-len = string-length(dec-part)
-  girth = get-girth(string-to-number-i(dec-part))
-  var left-0-padding-len = dec-part-len - (girth + 1)
-  ss1n-str = string-substring(dec-part, 0, max-chars)
-  var ss1n = 0
-  var ss1n-girth = -1
-  if ss1n-str <> '' block:
-    ss1n := string-to-number-i(ss1n-str)
-    ss1n-girth := get-girth(ss1n)
-  else: false
-  end
-  orig-ss1n-girth = ss1n-girth
-  ss2n = string-to-number-i(string-substring(dec-part, max-chars, max-chars + 1))
-  # spy: fixme: 177 end
-  # spy: dec-part, max-chars, ss1n, ss2n end
-  if ss2n >= 5 block:
-    ss1n := ss1n + 1
-    ss1n-girth := get-girth(ss1n)
-  else: false
-  end
-  if ss1n-girth > orig-ss1n-girth:
-    left-0-padding-len := left-0-padding-len - 1
-  else: false
-  end
-  if left-0-padding-len < 0:
-    'overflow'
+  if max-chars < 0 block:
+    raise("Cannot compress '" + dec-part + "' to " + num-to-string(max-chars) + " chars")
+  else if dec-part-len == 0:
+    ''
   else:
-    left-0-padding = string-repeat('0', left-0-padding-len)
-    left-0-padding + num-to-string(ss1n)
+    girth = get-girth(string-to-number-i(dec-part))
+    var left-0-padding-len = dec-part-len - (girth + 1)
+    ss1n-str = string-substring(dec-part, 0, max-chars)
+    var ss1n = 0
+    var ss1n-girth = -1
+    if ss1n-str <> '' block:
+      ss1n := string-to-number-i(ss1n-str)
+      ss1n-girth := get-girth(ss1n)
+    else: false
+    end
+    orig-ss1n-girth = ss1n-girth
+    ss2n = string-to-number-i(string-substring(dec-part, max-chars, max-chars + 1))
+    # spy: fixme: 177 end
+    # spy: dec-part, max-chars, ss1n, ss2n end
+    if ss2n >= 5 block:
+      ss1n := ss1n + 1
+      ss1n-girth := get-girth(ss1n)
+    else: false
+    end
+    if ss1n-girth > orig-ss1n-girth:
+      left-0-padding-len := left-0-padding-len - 1
+    else: false
+    end
+    if left-0-padding-len < 0:
+      'overflow'
+    else:
+      left-0-padding = string-repeat('0', left-0-padding-len)
+      left-0-padding + num-to-string(ss1n)
+    end
   end
 end
 
@@ -239,39 +241,24 @@ fun shrink-dec(num-str, max-chars):
     frac-part-len = string-length(frac-part)
     expt-part-len = string-length(expt-part)
     int-part-num = string-to-number-i(int-part)
-    var output = ''
     if int-part-len <= max-chars block:
-      if expt-part-len == 0 block:
-        if frac-part-len == 0:
-          output := int-part
-        else:
-          # spy: fixme: 302 end
-          frac-part-mod = shrink-dec-part(frac-part,
-          max-chars - (int-part-len + 1))
-          # spy: frac-part-mod end
-          if frac-part-mod == 'overflow':
-            output := num-to-string(int-part-num + 1)
-          else if frac-part-mod == '':
-            output := int-part
-          else:
-            output := int-part + '.' + frac-part-mod
-          end
-        end
+      # spy: fixme: 302 end
+      frac-part-mod = shrink-dec-part(frac-part,
+      max-chars - (int-part-len + expt-part-len + 1))
+      # spy: frac-part-mod end
+      var int-dec-part = ''
+      if frac-part-mod == 'overflow':
+        # when incoming frac-part is .9999x where x >= 5,
+        # it overflows past the decimal point, i.e.,
+        # should be rounded to 1
+        int-dec-part := num-to-string(int-part-num + 1)
+      else if frac-part-mod == '':
+        # no need to add decimal point in this case
+        int-dec-part := int-part
       else:
-        var int-dec-part = ''
-        frac-part-mod = shrink-dec-part(frac-part,
-        max-chars - (int-part-len + expt-part-len + 1))
-        if frac-part-mod == 'overflow':
-          int-dec-part := num-to-string(int-part-num + 1)
-        else if frac-part-mod == '':
-          int-dec-part := int-part
-        else:
-          int-dec-part := int-part + '.' + frac-part-mod
-        end
-        output := int-dec-part + expt-part
+        int-dec-part := int-part + '.' + frac-part-mod
       end
-      # spy 'shrink-dec returned': output end
-      output
+      int-dec-part + expt-part
     else:
       raise('shrink-dec: Could not fit ' + num-str + ' into ' +
       num-to-string(max-chars) + ' chars')
