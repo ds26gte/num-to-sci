@@ -170,7 +170,7 @@ fun shrink-dec-part(dec-part, max-chars) block:
   # spy 'shrink-dec-part of': dec-part, max-chars end
   dec-part-len = string-length(dec-part)
   if max-chars < 0 block:
-    raise("Cannot compress '" + dec-part + "' to " + num-to-string(max-chars) + " chars")
+    'cantfit'
   else if dec-part-len == 0:
     ''
   else:
@@ -246,22 +246,21 @@ fun shrink-dec(num-str, max-chars):
       frac-part-mod = shrink-dec-part(frac-part,
       max-chars - (int-part-len + expt-part-len + 1))
       # spy: frac-part-mod end
-      var int-dec-part = ''
-      if frac-part-mod == 'overflow':
+      if frac-part-mod == 'cantfit':
+        'cantfit'
+      else if frac-part-mod == 'overflow':
         # when incoming frac-part is .9999x where x >= 5,
         # it overflows past the decimal point, i.e.,
         # should be rounded to 1
-        int-dec-part := num-to-string(int-part-num + 1)
+         num-to-string(int-part-num + 1) + expt-part
       else if frac-part-mod == '':
         # no need to add decimal point in this case
-        int-dec-part := int-part
+         int-part + expt-part
       else:
-        int-dec-part := int-part + '.' + frac-part-mod
+         int-part + '.' + frac-part-mod + expt-part
       end
-      int-dec-part + expt-part
     else:
-      raise('shrink-dec: Could not fit ' + num-str + ' into ' +
-      num-to-string(max-chars) + ' chars')
+      'cantfit'
     end
   end
 end
@@ -282,36 +281,50 @@ fun num-to-sci(n, max-chars) block:
   prefix = (if roughp: '~' else: '' end) + (if negativep: '-' else: '' end)
   prefix-len = string-length(prefix)
   max-chars-mod = max-chars - prefix-len
+  var output = ''
   if not(string-contains(underlying-num-str, 'e')):
     # spy: fixme: 1, max-chars-mod end
     if underlying-num-str-len <= max-chars-mod:
       if not(string-contains(underlying-num-str, '/') or string-contains(underlying-num-str, '.')):
         # this weird special case bc of bigints
         # spy: fixme: 1 end
-        num-to-string(n)
+        output := num-to-string(n)
       else:
         # spy: fixme: 1.1 end
-        prefix + underlying-num-str
+        output := prefix + underlying-num-str
       end
-    else if underlying-num == 0: prefix + '0'
+    else if underlying-num == 0:
+      output := prefix + '0'
     else:
       girth = num-floor(log-base(10, num-abs(underlying-num)))
       sci-num-str = make-sci(underlying-num, underlying-num-str,
-         max-chars-mod)
+      max-chars-mod)
       # spy: fixme: 2, girth, underlying-num-str, sci-num-str, max-chars-mod end
       # spy: sci-num-str end
-      if (girth < 0) and (girth > -3):
+      if sci-num-str == 'cantfit':
+        output := 'cantfit'
+      else if (girth < 0) and (girth > -3):
         # spy: fixme: 2.4 end
-        prefix + shrink-dec(underlying-num-str, max-chars-mod)
+        num-mod = shrink-dec(underlying-num-str, max-chars-mod)
+        if num-mod == 'cantfit':
+          output := 'cantfit'
+        else:
+          output := prefix + num-mod
+        end
       else if string-length(sci-num-str) <= max-chars-mod:
         # spy: fixme: 2.5 end
-        prefix + sci-num-str
+        output := prefix + sci-num-str
       else if not(string-contains(underlying-num-str, '/')):
         # spy: fixme: 2.6 end
-        prefix + shrink-dec(underlying-num-str, max-chars-mod)
+        num-mod = shrink-dec(underlying-num-str, max-chars-mod)
+        if num-mod == 'cantfit':
+          output := 'cantfit'
+        else:
+          output := prefix + num-mod
+        end
       else:
         # spy: fixme: 3 end
-        prefix + sci-num-str
+        output := prefix + sci-num-str
       end
     end
   else:
@@ -319,14 +332,23 @@ fun num-to-sci(n, max-chars) block:
     # spy "unsci": prefix, underlying-num-str, unsci-underlying-num-str,  max-chars-mod end
     # spy: unsci-num-str-len: string-length(unsci-underlying-num-str) end
     if string-length(unsci-underlying-num-str) <= max-chars-mod:
-      prefix + unsci-underlying-num-str
+      output := prefix + unsci-underlying-num-str
     else if underlying-num-str-len <= max-chars-mod:
-      prefix + underlying-num-str
+      output := prefix + underlying-num-str
     else:
       # spy: fixme: 4 end
-      prefix + shrink-dec(underlying-num-str, max-chars-mod)
+      num-mod = shrink-dec(underlying-num-str, max-chars-mod)
+      if num-mod == 'cantfit':
+        output := 'cantfit'
+      else:
+        output := prefix + num-mod
+      end
     end
-
+  end
+  if output == 'cantfit':
+    raise('Could not fit ' + prefix + underlying-num-str + ' into ' + tostring(max-chars) + ' chars')
+  else:
+    output
   end
 where:
 
@@ -367,7 +389,7 @@ where:
   num-to-sci(0.0999999, 5) is "0.100"
   num-to-sci(0.9999999, 5) is "1"
 
-  num-to-sci(9999.99, 3) raises "Cannot compress"
+  num-to-sci(9999.99, 3) raises "Could not fit"
 end
 # print(num-to-sci(23e3, 18))
 
@@ -398,7 +420,7 @@ fun easy-num-repr(n, max-chars) block:
   # spy: int-str, dec-str end
   var output = ''
   if underlying-num == 1 block:
-    output := '1'
+    output := prefix + '1'
   else:
     var min-len-needed = 0
     if underlying-num > 1:
@@ -411,25 +433,27 @@ fun easy-num-repr(n, max-chars) block:
       # spy: fixme: 'ez' end
       var rounding-check-p = false
       if max-chars-mod == underlying-num-str-len:
-        output := string-substring(underlying-num-str, 0, max-chars-mod)
+        output := prefix + string-substring(underlying-num-str, 0, max-chars-mod)
       else:
         var num-2 = string-substring(underlying-num-str, 0, max-chars-mod + 1)
         if underlying-num > 1:
-          output := num-to-sci(string-to-number-i(num-2), max-chars-mod)
+          output := prefix + num-to-sci(string-to-number-i(num-2), max-chars-mod)
         else:
           dec-part-mod = shrink-dec-part(string-substring(num-2, 2, string-length(num-2)), max-chars-mod - 2)
-          if dec-part-mod == 'overflow':
-            output := '1'
+          if dec-part-mod == 'cantfit':
+            output := 'cantfit'
+          else if dec-part-mod == 'overflow':
+            output := prefix + '1'
           else:
-            output := '0.' + dec-part-mod
+            output := prefix + '0.' + dec-part-mod
           end
         end
       end
     else:
-      output := num-to-sci(underlying-num, max-chars)
+      output := prefix + num-to-sci(underlying-num, max-chars)
     end
   end
-  prefix + output
+  output
 where:
   easy-num-repr(0.0001234, 6) is "0.0001"
   easy-num-repr(2343.234, 6) is "2343.2"
@@ -438,7 +462,7 @@ where:
   easy-num-repr(~0.082805, 9) is "~0.082805"
   easy-num-repr(0.0999999, 5) is "0.100"
   easy-num-repr(0.9999999, 5) is "1"
-  easy-num-repr(9999.99, 3) raises "Cannot compress"
+  easy-num-repr(9999.99, 3) raises "Could not fit"
 end
 
 # fun t():
