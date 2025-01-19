@@ -453,7 +453,11 @@ fun easy-num-repr(n, max-chars) block:
       output := prefix + num-to-sci(underlying-num, max-chars)
     end
   end
-  output
+  if output == 'cantfit':
+    raise('Could not fit ' + prefix + underlying-num-str + ' into ' + tostring(max-chars) + ' chars')
+  else:
+    output
+  end
 where:
   easy-num-repr(0.0001234, 6) is "0.0001"
   easy-num-repr(2343.234, 6) is "2343.2"
