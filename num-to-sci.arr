@@ -169,8 +169,21 @@ end
 fun shrink-dec-part(dec-part, max-chars) block:
   # spy 'shrink-dec-part of': dec-part, max-chars end
   dec-part-len = string-length(dec-part)
-  if max-chars < 0 block:
+  if max-chars < -1 block:
     'cantfit'
+  else if max-chars == -1:
+    var ss1n = 0
+    if dec-part-len > 0 block:
+      ss1n-str = string-substring(dec-part, 0, 1)
+      ss1n := string-to-number-i(ss1n-str)
+      if ss1n >= 5:
+        'overflow'
+      else:
+        ''
+      end
+    else:
+      ''
+    end
   else if dec-part-len == 0:
     ''
   else:
@@ -380,6 +393,7 @@ where:
   num-to-sci(203680.147, 9) is "203680.15"
   num-to-sci(2036801.47, 9) is "2036801.5"
   num-to-sci(20368014.7, 9) is "20368015" # "2.03680e7"
+  num-to-sci(10939174.78308761, 8) is "10939175"
 
   num-to-sci(0.00001284567, 8) is "1.285e-5" # "0.00001"
   num-to-sci(0.00001284567, 9) is "1.2846e-5" # "0.000013"
