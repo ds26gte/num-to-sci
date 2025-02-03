@@ -423,7 +423,7 @@ fun easy-num-repr(n, max-chars) block:
   end
   decimal-point-position = string-index-of(underlying-num-str, '.')
   underlying-num-str-len = string-length(underlying-num-str)
-  # spy: underlying-num, underlying-num-str, underlying-num-str-len, max-chars-mod end
+  # spy: prefix, underlying-num, underlying-num-str, underlying-num-str-len, max-chars-mod end
   var int-str = underlying-num-str
   var dec-str = ''
   if decimal-point-position > -1 block:
@@ -446,24 +446,39 @@ fun easy-num-repr(n, max-chars) block:
     if (min-len-needed <= underlying-num-str-len) and (min-len-needed <= max-chars-mod) and (max-chars-mod <= underlying-num-str-len) block:
       # spy: fixme: 'ez' end
       var rounding-check-p = false
-      if max-chars-mod == underlying-num-str-len:
+      if max-chars-mod == underlying-num-str-len block:
+        # spy: fixme: 'ez1' end
         output := prefix + string-substring(underlying-num-str, 0, max-chars-mod)
       else:
-        var num-2 = string-substring(underlying-num-str, 0, max-chars-mod + 1)
+        # spy: fixme: 'ez2' end
+        # spy: underlying-num-str, max-chars-mod, decimal-point-position end
+        var end-i = max-chars-mod + 1
+        if max-chars-mod == decimal-point-position:
+          end-i := max-chars-mod + 2
+        else: false
+        end
+        var num-2 = string-substring(underlying-num-str, 0, end-i)
+        # spy: num-2 end
         if underlying-num > 1:
+          # spy: fixme: 'ez2.1' end
           output := prefix + num-to-sci(string-to-number-i(num-2), max-chars-mod)
         else:
+          # spy: fixme: 'ez2.2' end
           dec-part-mod = shrink-dec-part(string-substring(num-2, 2, string-length(num-2)), max-chars-mod - 2)
           if dec-part-mod == 'cantfit':
+            # spy: fixme: 'ez2.2.1' end
             output := 'cantfit'
           else if dec-part-mod == 'overflow':
+            # spy: fixme: 'ez2.2.2' end
             output := prefix + '1'
           else:
+            # spy: fixme: 'ez2.2.3' end
             output := prefix + '0.' + dec-part-mod
           end
         end
       end
     else:
+      # spy: fixme: 'ez-else' end
       output := prefix + num-to-sci(underlying-num, max-chars)
     end
   end
@@ -480,6 +495,8 @@ where:
   easy-num-repr(~0.082805, 9) is "~0.082805"
   easy-num-repr(0.0999999, 5) is "0.100"
   easy-num-repr(0.9999999, 5) is "1"
+  easy-num-repr(~-125137.47385839373, 8) is "~-125137"
+  easy-num-repr(~-125137.67385839373, 8) is "~-125138"
   easy-num-repr(9999.99, 3) raises "Could not fit"
 end
 
@@ -497,6 +514,7 @@ end
 #   # [list: easy-num-repr(0.0001234, 6), "0.0001"]
 #   # [list: num-to-sci(20368014.7, 9), "20368014"]
 #   # [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
+# easy-num-repr(~-125137.67385839373,8)
 # end
 
 # num-to-sci(203.680147,9) should evaluate to ~203.6801 instead of ~2.0368e2
