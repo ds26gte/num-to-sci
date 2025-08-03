@@ -42,7 +42,7 @@ fun fake-num-to-fixnum(n) block:
   if expt-position == -1: s
   else:
     if string-substring(s, expt-position + 1, expt-position + 2) == '+':
-      string-substring(s, 0, expt-position) + string-substring(s, expt-position + 2, len)
+      string-substring(s, 0, expt-position) + 'e' + string-substring(s, expt-position + 2, len)
     else: s
     end
   end
@@ -479,7 +479,7 @@ fun easy-num-repr(n, max-chars) block:
       end
     else:
       # spy: fixme: 'ez-else' end
-      output := prefix + num-to-sci(underlying-num, max-chars)
+      output := prefix + num-to-sci(underlying-num, max-chars-mod)
     end
   end
   if output == 'cantfit':
@@ -498,23 +498,26 @@ where:
   easy-num-repr(~-125137.47385839373, 8) is "~-125137"
   easy-num-repr(~-125137.67385839373, 8) is "~-125138"
   easy-num-repr(9999.99, 3) raises "Could not fit"
+  easy-num-repr(~2.439640185494792e+24, 10) is "~2.4396e24"
 end
 
 # fun t():
-#   # easy-num-repr(0.0001234, 6)
-#   # [list: easy-num-repr(2343.234, 6), "2343.2"]
-#   # [list: easy-num-repr(0.000000001234, 6) , 0.000000001234, 6, "1.2e-9"]
-#   # [list: easy-num-repr(0.0001234, 6) , "0.0001"]
-#   num-to-sci(20368014.7, 9) # "20368015"
-#   # num-to-sci(100000, 2)
-#   # easy-num-repr(~0.082805, 9)
-#   # [list: shrink-dec("0.9999999", 5), shrink-dec-part("99999999", 3)]
-#   # num-to-sci(0.099999, 5)
-#   # easy-num-repr(0.099999,5)
-#   # [list: easy-num-repr(0.0001234, 6), "0.0001"]
-#   # [list: num-to-sci(20368014.7, 9), "20368014"]
-#   # [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
+# easy-num-repr(0.0001234, 6)
+# [list: easy-num-repr(2343.234, 6), "2343.2"]
+# [list: easy-num-repr(0.000000001234, 6) , 0.000000001234, 6, "1.2e-9"]
+# [list: easy-num-repr(0.0001234, 6) , "0.0001"]
+# num-to-sci(20368014.7, 9) # "20368015"
+# num-to-sci(100000, 2)
+# easy-num-repr(~0.082805, 9)
+# [list: shrink-dec("0.9999999", 5), shrink-dec-part("99999999", 3)]
+# num-to-sci(0.099999, 5)
+# easy-num-repr(0.099999,5)
+# [list: easy-num-repr(0.0001234, 6), "0.0001"]
+# [list: num-to-sci(20368014.7, 9), "20368014"]
+# [list: num-to-sci(0.00001234567, 7), "1.2e-5"]
 # easy-num-repr(~-125137.67385839373,8)
+# num-to-sci(203.680147,9) # ~203.6801 not ~2.0368e2
+# num-to-sci(12387691745124903567102, 7) # is "1.24e22" # not 1.23876
+# num-to-sci(0.0000000000456, 7) # is "4.6e-11" # not 4.56e-1
+# easy-num-repr(~2.439640185494792e+24, 10)
 # end
-
-# num-to-sci(203.680147,9) should evaluate to ~203.6801 instead of ~2.0368e2
